@@ -4,6 +4,8 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Any
 import camelot
+
+import streamlit as st
 class Loader():
     
     def load(AccountName, bank) ->NDArray:
@@ -23,7 +25,7 @@ class Loader():
         else:
             NotImplementedError(f"{bank} has not been implemented yet")
     def LoadRBC(AccountName) -> NDArray:
-
+        pass
     def LoadWealthsimple(AccountName) -> NDArray:
             files = glob.glob(f"{AccountName}*.csv")
             statement = np.array(
@@ -40,15 +42,3 @@ class Loader():
             pass
     def RBCtoCSV(file) -> pd.DataFrame:
         raise(NotImplementedError)
-
-   
-
-class MoneyData():
-    def init()
-        
-
-
-
-
-
-class data
