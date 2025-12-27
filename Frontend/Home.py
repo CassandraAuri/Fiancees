@@ -7,6 +7,15 @@ import camelot
 import calendar
 import streamlit as st
 
+class csvlogic():
+    def readcsv() -> None:
+        if "csvmasterfile" not in st.session_state:
+            st.session_state["csvmasterfile"] = pd.readcsv()#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
+            pass
+    def userselecteddataframe() -> None:
+        userdataframe=
+        st.session_state["UserDataframe"]
+
 class Dates_UserSelected():
     def monthslider() -> None:
         months = list(calendar.month_name)[1:]  # January → December
@@ -28,16 +37,16 @@ class Dates_UserSelected():
         if st.session_state["Years"][0] == st.session_state["Years"][1]:
             st.warning("Choose a Month range, not the same month")
     def accounts() -> None:
-        pass
-    def readcsv() -> None:
-        if "csvmasterfile" not in st.session_state:
-            st.session_state["csvmasterfile"] = pd.readcsv()#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
-            pass
+        Accounts= [1,2,3]
+        st.multiselect("Accounts to plot", options=Accounts, key=Accounts)
+    
 
 
     def init() -> None:
+        csvlogic.readcsv()
         Dates_UserSelected.yearslider()
         Dates_UserSelected.monthslider()
+        csvlogic.userselecteddataframe()
     
         
        
