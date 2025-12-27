@@ -8,8 +8,11 @@ import calendar
 import streamlit as st
 import datetime
 class csvlogic():
-    def dateformating(year, month):
-
+    def month_to_number(month) -> str:
+        return datetime.strptime(month, "%B").strftime("%m")
+    def dateformating(year, month) -> str:
+        return f"{year}-{csvlogic.month_to_number(month)}"
+    
     def readcsv() -> None:
         if "csvmasterfile" not in st.session_state:
             st.session_state["csvmasterfile"] = pd.readcsv()#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
@@ -21,11 +24,12 @@ class csvlogic():
         #Select Accounts
         userdataframe=userdataframe["Account"].isin(st.session_state["Accounts"])
         #Select Date
-
-        mask = (userdataframe['date'] > st.session_state[""]) & (df['date'] <= end_date)
-        userdataframe=userdataframe[]
-
-        st.session_state["UserDataframe"]
+        months=st.session_state["Months"]
+        years=st.session_state["Years"]
+        userselecteddates=[csvlogic.dateformating(years[0], months[0]), csvlogic.dateformating(years[1], months[1])]
+        mask = (userdataframe['date'] > userselecteddates[0]) & (userdataframe['date'] <= userselecteddates[1])
+        userdataframefinal=userdataframe[mask]
+        st.session_state["UserDataframe"] =userdataframefinal
 
 class Dates_UserSelected():
     
