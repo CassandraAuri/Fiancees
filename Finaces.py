@@ -23,7 +23,7 @@ class Loader():
         else:
             NotImplementedError(f"{bank} has not been implemented yet")
     def LoadRBC(AccountName) -> NDArray:
-        
+
     def LoadWealthsimple(AccountName) -> NDArray:
             files = glob.glob(f"{AccountName}*.csv")
             statement = np.array(
@@ -46,3 +46,9 @@ class Loader():
 class MoneyData():
     def init()
         
+
+
+
+
+
+class data
