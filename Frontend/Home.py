@@ -6,17 +6,29 @@ from typing import Any
 import camelot
 import calendar
 import streamlit as st
-
+import datetime
 class csvlogic():
+    def dateformating(year, month):
+
     def readcsv() -> None:
         if "csvmasterfile" not in st.session_state:
             st.session_state["csvmasterfile"] = pd.readcsv()#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
             pass
     def userselecteddataframe() -> None:
-        userdataframe=
+        
+        userdataframe=st.session_state["csvmasterfile"]
+
+        #Select Accounts
+        userdataframe=userdataframe["Account"].isin(st.session_state["Accounts"])
+        #Select Date
+
+        mask = (userdataframe['date'] > st.session_state[""]) & (df['date'] <= end_date)
+        userdataframe=userdataframe[]
+
         st.session_state["UserDataframe"]
 
 class Dates_UserSelected():
+    
     def monthslider() -> None:
         months = list(calendar.month_name)[1:]  # January → December
         if "Months" not in st.session_state:
