@@ -6,6 +6,20 @@ from typing import Any, List
 import camelot
 import os
 
+class Transaction():
+    """Implements a financial transaction as a dictionary-like object"""
+    def __init__(self, date, accountID, amount, balance, description, currency="CAD"):
+        self.date = date
+        self.accountID = accountID
+        self.amount = amount
+        self.balance = balance
+        self.description = description
+        self.currency = currency
+
+    @property
+    def dict(self):
+        return {"date":self.date,"accountID": self.accountID,"amount":self.amount,"balance":self.balance,"description":self.description,"currency":self.currency}
+
 class Loader():
     data_filename = "Data/FinancesData.csv"
     update_filename = "Data/FinancesUpdate.csv"
@@ -16,24 +30,35 @@ class Loader():
         """
         Checks if any new files must be added and adds them to the datafile
         """
-        with open(Loader.update_filename, "r") as updatefile:
-            updates = pd.read_csv(updatefile)        
-        newfiles = [filename for filename in glob.glob(f"Statements/*") if Loader.check(filename, updates)]
+        updates = pd.read_csv(Loader.update_filename)        
+        accountIDs = pd.read_csv(Loader.accountId_filename)
+        dataFrame = pd.read_csv(Loader.data_filename)
 
-        with open(Loader.accountId_filename, "r") as accountfile:
-            accountIDs = pd.read_csv(accountfile)
+        newfiles = [filename for filename in glob.glob(f"Statements/*") if Loader.check(filename, updates)]
+        print(accountIDs)
+        print(dataFrame)
+        print(updates)
         for filename in newfiles:
             if "MasterCard Statement" in filename:
                 '''RBC Statement'''
-                statements = Loader.RBCtoTransaction(filename, accountIDs)
+                statements = Loader.RBCtoTransactions(filename, accountIDs)
             elif "monthly-statement-transactions" in filename:
                 '''Wealthsimple Statement'''
-                statements = Loader.WealthsimpletoTransaction(filename,accountIDs)
+                statements = Loader.WealthsimpletoTransactions(filename,accountIDs)
             else:
                 raise(NotImplementedError(f"{filename} is not a supported statement type"))
             
-            #Append transactions to datafile
-            #Update the updates file
+            for statement in statements:
+                print(statement.dict)
+                pd.concat([dataFrame,pd.DataFrame([statement.dict])])
+                pd.concat([updates,pd.DataFrame([{"filename": filename, "timestamp": os.path.getmtime(filename)}])])
+        #accountIDs.tocsv(Loader.accountId_filename)
+        dataFrame.to_csv(Loader.data_filename)
+        updates.to_csv(Loader.update_filename)
+
+        print("Done")
+        #Append transactions to datafile
+        #Update the updates file
 
     @staticmethod  
     def check(filename: str, updates)-> bool:
@@ -71,7 +96,10 @@ class Loader():
             .str.replace(",", "", regex=False)
             .astype(float)
         )
-        accountId = accountIDs[accountIDs["Number"]==filename.split(" ")[-1:-4]]["AccountID"].iloc[0]
+        accountNumber = filename.split(" ")[1][-4:]
+        if(accountNumber not in accountIDs["Number"].values):
+                raise(NotImplementedError("TODO: create a new account ID entry"))
+        accountId = accountIDs[accountIDs["Number"]==accountNumber]["AccountID"].iloc[0]
         balance = None #TODO: Extract balance from statement
         currency = "CAD" #Default currency
         year = int(re.search(r"\d{4}", filename.split(" ")[2]).group(0))
@@ -82,17 +110,10 @@ class Loader():
         statements = np.array(pd.read_csv(filename))
         transactions = []
         for entry in statements:
-            accountID = accountIDs[accountIDs["AccountName"]==filename.split("_")[0]]["AccountID"].iloc[0] 
+            accountName = filename.split("\\")[-1].split("-")[0]
+            if(accountName not in accountIDs["AccountName"].values):
+                raise(NotImplementedError("TODO: create a new account ID entry"))
+            accountID = accountIDs[accountIDs["AccountName"]==accountName]["AccountID"].iloc[0] 
             transaction = Transaction(entry[0], accountID, entry[3], entry[4], entry[2], entry[5])
             transactions.append(transaction)
         return transactions
-
-class Transaction():
-    """Implements a financial transaction as a dictionary-like object"""
-    def __init__(self, date, accountID, amount, balance, description, currency="CAD"):
-        self.date = date
-        self.accountID = accountID
-        self.amount = amount
-        self.balance = balance
-        self.description = description
-        self.currency = currency
