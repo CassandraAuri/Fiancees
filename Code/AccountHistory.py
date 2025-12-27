@@ -32,12 +32,11 @@ class Loader():
         """
         updates = pd.read_csv(Loader.update_filename)        
         accountIDs = pd.read_csv(Loader.accountId_filename)
-        dataFrame = pd.read_csv(Loader.data_filename)
+        data = pd.read_csv(Loader.data_filename).to_dict(orient = "list")
 
         newfiles = [filename for filename in glob.glob(f"Statements/*") if Loader.check(filename, updates)]
-        print(accountIDs)
-        print(dataFrame)
-        print(updates)
+        updates = updates.to_dict(orient="list")
+
         for filename in newfiles:
             if "MasterCard Statement" in filename:
                 '''RBC Statement'''
@@ -49,16 +48,16 @@ class Loader():
                 raise(NotImplementedError(f"{filename} is not a supported statement type"))
             
             for statement in statements:
-                print(statement.dict)
-                pd.concat([dataFrame,pd.DataFrame([statement.dict])])
-                pd.concat([updates,pd.DataFrame([{"filename": filename, "timestamp": os.path.getmtime(filename)}])])
-        #accountIDs.tocsv(Loader.accountId_filename)
-        dataFrame.to_csv(Loader.data_filename)
-        updates.to_csv(Loader.update_filename)
+                for key in data.keys():
+                    if(not key=="Unnamed"):
+                        data[key].append(statement.dict[key])
 
-        print("Done")
-        #Append transactions to datafile
-        #Update the updates file
+            for key in updates.keys():
+                    if(not key=="Unnamed"):
+                        updates[key].append({"filename": filename, "timestamp": os.path.getmtime(filename)}[key])
+        #TODO: Add new accounts when files are added        
+        pd.DataFrame(data).to_csv(Loader.data_filename,index=False)
+        pd.DataFrame(updates).to_csv(Loader.update_filename,index=False)
 
     @staticmethod  
     def check(filename: str, updates)-> bool:
