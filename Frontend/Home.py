@@ -7,19 +7,22 @@ import camelot
 import calendar
 import streamlit as st
 from datetime import datetime
-class csvlogic():
+class utils():
     def month_to_number(month) -> str:
         return datetime.strptime(month, "%B").strftime("%m")
     def dateformating(year, month) -> str:
-        return f"{year}-{csvlogic.month_to_number(month)}-01"
+        return f"{year}-{utils.month_to_number(month)}-01"
+class csvlogic():
     
-    def readcsv() -> None:
+    def readcsv() -> None: #Data/FinancesData.csv
         if "csvmasterfile" not in st.session_state:
-            st.session_state["csvmasterfile"] = pd.read_csv("../data.csv")#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
+            st.session_state["csvmasterfile"] = pd.read_csv("../Data/FinancesData.csv")#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
             pass
+
     def userselecteddataframe() -> None:
         
         userdataframe=st.session_state["csvmasterfile"]
+        userdataframe["dates"] = pd.to_datetime(userdataframe["dates"],  format="%Y-%m-%d")
 
         #Select Accounts
     
@@ -29,13 +32,19 @@ class csvlogic():
             mask=userdataframe["accountID"].isin(st.session_state["Accounts"])
             userdataframe=userdataframe[mask]
             #Select Date
+            
             months=st.session_state["Months"]
             years=st.session_state["Years"]
-            userselecteddates=[csvlogic.dateformating(years[0], months[0]), csvlogic.dateformating(years[1], months[1])]
-            st.write(userdataframe.keys())
-            mask = (userdataframe['date'] > userselecteddates[0]) & (userdataframe['date'] <= userselecteddates[1])
+            userselecteddates=[utils.dateformating(years[0], months[0]), utils.dateformating(years[1], months[1])]
+            userselecteddates = pd.to_datetime(userselecteddates, format="%Y-%m-%d" )
+
+            mask = (
+                (userdataframe["dates"] > userselecteddates[0]) &
+                (userdataframe["dates"] <= userselecteddates[1])
+            )
+
             userdataframefinal=userdataframe[mask]
-            st.write()
+
             st.session_state["userdataframe"]= userdataframefinal
 
 class Dates_UserSelected():
@@ -62,7 +71,7 @@ class Dates_UserSelected():
     def accounts() -> None:
         if "Accounts" not in st.session_state:
             st.session_state["Accounts"] = []
-        Accounts= [0,1]
+        Accounts= [0,1,2] #TODO all the accounts
         st.multiselect("Accounts to plot", options=Accounts, key="Accounts")
     
 

@@ -1,3 +1,4 @@
-"AccountID","AccountName","Number"
-0,"LynandCasssittinginatree","Unknown"
-1,"RBCCassandra","9072"
+AccountID,AccountName,Number,Type,Owner,Bank
+0,LynandCasssittinginatree,,,Lyn&Cassandra,Wealthsimple
+1,RBCCassandra,9072.0,,Cassandra,RBC
+
