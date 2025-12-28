@@ -31,7 +31,7 @@ class Loader():
         Checks if any new files must be added and adds them to the datafile
         """
         updates = pd.read_csv(Loader.update_filename)        
-        accountIDs = pd.read_csv(Loader.accountId_filename)
+        accountIDs = pd.read_csv(Loader.accountId_filename).to_dict(orient = "list")
         data = pd.read_csv(Loader.data_filename).to_dict(orient = "list")
 
         newfiles = [filename for filename in glob.glob(f"Statements/*") if Loader.check(filename, updates)]
@@ -40,36 +40,33 @@ class Loader():
         for filename in newfiles:
             if "MasterCard Statement" in filename:
                 '''RBC Statement'''
-                statements = Loader.RBCtoTransactions(filename, accountIDs)
+                accountIDs, statements = Loader.RBCtoTransactions(filename, accountIDs)
             elif "monthly-statement-transactions" in filename:
                 '''Wealthsimple Statement'''
-                statements = Loader.WealthsimpletoTransactions(filename,accountIDs)
+                accountIDs, statements = Loader.WealthsimpletoTransactions(filename,accountIDs)
             else:
                 raise(NotImplementedError(f"{filename} is not a supported statement type"))
             
             for statement in statements:
                 for key in data.keys():
-                    if(not key=="Unnamed"):
-                        data[key].append(statement.dict[key])
-
-            for key in updates.keys():
-                    if(not key=="Unnamed"):
-                        updates[key].append({"filename": filename, "timestamp": os.path.getmtime(filename)}[key])
-        #TODO: Add new accounts when files are added        
-        pd.DataFrame(data).to_csv(Loader.data_filename,index=False)
-        pd.DataFrame(updates).to_csv(Loader.update_filename,index=False)
+                    data[key].append(statement.dict[key])
+            updates["filename"].append(filename)
+        #TODO: Add new accounts when files are added     
+        pd.DataFrame(accountIDs).to_csv(Loader.accountId_filename, index = False)   
+        pd.DataFrame(data).to_csv(Loader.data_filename, index = False)
+        pd.DataFrame(updates).to_csv(Loader.update_filename, index = False)
 
     @staticmethod  
     def check(filename: str, updates)-> bool:
         '''Checks if the file exists and needs uploading to the datafile'''
         if(not os.path.exists(filename)):
             raise(FileNotFoundError(f"{filename} does not exist"))
-        elif(filename in updates["filename"].values and 
-             os.path.getmtime(filename)==float(updates[updates["filename"]==filename]["timestamp"].iloc[0])):
+        elif(filename in updates["filename"].values):
             return False
         else:
             return True
 
+    @staticmethod
     def RBCtoTransactions(filename, accountIDs)->List[Transaction]:
         #Cassandra's code for reading RBC PDF statements
         tables = camelot.read_pdf(
@@ -95,24 +92,38 @@ class Loader():
             .str.replace(",", "", regex=False)
             .astype(float)
         )
-        accountNumber = filename.split(" ")[1][-4:]
-        if(accountNumber not in accountIDs["Number"].values):
-                raise(NotImplementedError("TODO: create a new account ID entry"))
-        accountId = accountIDs[accountIDs["Number"]==accountNumber]["AccountID"].iloc[0]
+        accountNumber = int(filename.split(" ")[1][-4:])
+        if(accountNumber not in map(lambda x: int(x) if not np.isnan(x) else '', accountIDs["Number"])):
+            accountIDs = Loader.newAccount(accountIDs,"RBC","",accountNumber)
+        accountId = accountIDs["AccountID"][accountIDs["Number"].index(accountNumber)]
         balance = None #TODO: Extract balance from statement
         currency = "CAD" #Default currency
         year = int(re.search(r"\d{4}", filename.split(" ")[2]).group(0))
-        transactions = [Transaction(entry.transaction_date, accountId, entry.amount, balance, entry.description, currency) for entry in df_tx.itertuples()]
-        return transactions
+        transactions = []
+        for entry in df_tx.itertuples():
+            month, date = entry.transaction_date.split(" ")
+            month = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"].index(month) + 1
+            day = "{}-{}-{}".format(year,month,date)
+            transactions.append(Transaction(day, accountId, entry.amount, balance, entry.description, currency))
+        return accountIDs,transactions
 
+    @staticmethod
     def WealthsimpletoTransactions(filename, accountIDs)->List[Transaction]:
         statements = np.array(pd.read_csv(filename))
         transactions = []
         for entry in statements:
             accountName = filename.split("\\")[-1].split("-")[0]
-            if(accountName not in accountIDs["AccountName"].values):
-                raise(NotImplementedError("TODO: create a new account ID entry"))
-            accountID = accountIDs[accountIDs["AccountName"]==accountName]["AccountID"].iloc[0] 
+            if(accountName not in accountIDs["AccountName"]):
+                accountIDs = Loader.newAccount(accountIDs,"Wealthsimple",accountName,"")
+            accountID = accountIDs["AccountID"][accountIDs["AccountName"].index(accountName)]
             transaction = Transaction(entry[0], accountID, entry[3], entry[4], entry[2], entry[5])
             transactions.append(transaction)
-        return transactions
+        return accountIDs,transactions
+
+    def newAccount(accountIDs,bank,name,number):
+        '''Determines a new ID and as much other information available'''
+        newID = min([i for i in range(0,len(accountIDs["AccountID"])+1) if i not in accountIDs["AccountID"]]) #Finds the first empty spot
+        account = {"AccountID": newID, "AccountName": name, "Number": number, "Type" : "", "Owner": "", "Bank": bank}
+        for key in account.keys():
+            accountIDs[key].append(account[key])
+        return accountIDs
