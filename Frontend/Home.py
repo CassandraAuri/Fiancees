@@ -6,30 +6,37 @@ from typing import Any
 import camelot
 import calendar
 import streamlit as st
-import datetime
+from datetime import datetime
 class csvlogic():
     def month_to_number(month) -> str:
         return datetime.strptime(month, "%B").strftime("%m")
     def dateformating(year, month) -> str:
-        return f"{year}-{csvlogic.month_to_number(month)}"
+        return f"{year}-{csvlogic.month_to_number(month)}-01"
     
     def readcsv() -> None:
         if "csvmasterfile" not in st.session_state:
-            st.session_state["csvmasterfile"] = pd.readcsv()#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
+            st.session_state["csvmasterfile"] = pd.read_csv("../data.csv")#TODO get file when stupid backend dev gets it done (rolls eyes), im going to prettify now
             pass
     def userselecteddataframe() -> None:
         
         userdataframe=st.session_state["csvmasterfile"]
 
         #Select Accounts
-        userdataframe=userdataframe["Account"].isin(st.session_state["Accounts"])
-        #Select Date
-        months=st.session_state["Months"]
-        years=st.session_state["Years"]
-        userselecteddates=[csvlogic.dateformating(years[0], months[0]), csvlogic.dateformating(years[1], months[1])]
-        mask = (userdataframe['date'] > userselecteddates[0]) & (userdataframe['date'] <= userselecteddates[1])
-        userdataframefinal=userdataframe[mask]
-        st.session_state["UserDataframe"] =userdataframefinal
+    
+        if st.session_state["Accounts"] == []:
+            pass
+        else:
+            mask=userdataframe["accountID"].isin(st.session_state["Accounts"])
+            userdataframe=userdataframe[mask]
+            #Select Date
+            months=st.session_state["Months"]
+            years=st.session_state["Years"]
+            userselecteddates=[csvlogic.dateformating(years[0], months[0]), csvlogic.dateformating(years[1], months[1])]
+            st.write(userdataframe.keys())
+            mask = (userdataframe['date'] > userselecteddates[0]) & (userdataframe['date'] <= userselecteddates[1])
+            userdataframefinal=userdataframe[mask]
+            st.write()
+            st.session_state["userdataframe"]= userdataframefinal
 
 class Dates_UserSelected():
     
@@ -53,8 +60,10 @@ class Dates_UserSelected():
         if st.session_state["Years"][0] == st.session_state["Years"][1]:
             st.warning("Choose a Month range, not the same month")
     def accounts() -> None:
-        Accounts= [1,2,3]
-        st.multiselect("Accounts to plot", options=Accounts, key=Accounts)
+        if "Accounts" not in st.session_state:
+            st.session_state["Accounts"] = []
+        Accounts= [0,1]
+        st.multiselect("Accounts to plot", options=Accounts, key="Accounts")
     
 
 
@@ -62,6 +71,7 @@ class Dates_UserSelected():
         csvlogic.readcsv()
         Dates_UserSelected.yearslider()
         Dates_UserSelected.monthslider()
+        Dates_UserSelected.accounts()
         csvlogic.userselecteddataframe()
     
         
