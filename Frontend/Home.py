@@ -22,7 +22,7 @@ class csvlogic():
     def userselecteddataframe() -> None:
         
         userdataframe=st.session_state["csvmasterfile"]
-        userdataframe["dates"] = pd.to_datetime(userdataframe["dates"],  format="%Y-%m-%d")
+        userdataframe["date"] = pd.to_datetime(userdataframe["date"],  format="%Y-%m-%d")
 
         #Select Accounts
     
@@ -32,19 +32,19 @@ class csvlogic():
             mask=userdataframe["accountID"].isin(st.session_state["Accounts"])
             userdataframe=userdataframe[mask]
             #Select Date
-            
+
             months=st.session_state["Months"]
             years=st.session_state["Years"]
             userselecteddates=[utils.dateformating(years[0], months[0]), utils.dateformating(years[1], months[1])]
             userselecteddates = pd.to_datetime(userselecteddates, format="%Y-%m-%d" )
 
-            mask = (
-                (userdataframe["dates"] > userselecteddates[0]) &
-                (userdataframe["dates"] <= userselecteddates[1])
-            )
+            start = userselecteddates[0]
+            end = userselecteddates[1] + pd.offsets.MonthBegin(1)
+            st.write(start,end)
+            
+            mask = (userdataframe["date"] >= start) & (userdataframe["date"] < end)
 
             userdataframefinal=userdataframe[mask]
-
             st.session_state["userdataframe"]= userdataframefinal
 
 class Dates_UserSelected():
@@ -63,11 +63,9 @@ class Dates_UserSelected():
         if "Years" not in st.session_state:
             st.session_state["Years"] = [2023, 2026]
         
-        st.select_slider("Month Range",options=years, value=st.session_state["Years"], key="Years")
+        st.select_slider("Year Range",options=years, value=st.session_state["Years"], key="Years")
 
         
-        if st.session_state["Years"][0] == st.session_state["Years"][1]:
-            st.warning("Choose a Month range, not the same month")
     def accounts() -> None:
         if "Accounts" not in st.session_state:
             st.session_state["Accounts"] = []
@@ -82,6 +80,7 @@ class Dates_UserSelected():
         Dates_UserSelected.monthslider()
         Dates_UserSelected.accounts()
         csvlogic.userselecteddataframe()
+        
     
         
        

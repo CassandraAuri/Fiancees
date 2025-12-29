@@ -24,18 +24,18 @@ class graphing:
 
             return fig
         
-        def Change(fig,positive,negative,i) -> plt.Figure:
-            width = 0.25  # the width of the bars
-            multiplier = 0
+        def Change(fig, positive, negative, i, months) -> plt.Figure:
+            w = 0.4
+            x = np.arange(len(months))  # numeric positions
 
-            fig, ax = plt.subplots(layout='constrained')
-            #https://www.geeksforgeeks.org/python/plotting-multiple-bar-charts-using-matplotlib-in-python/
-            for attribute, measurement in penguin_means.items(): #https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html
-                offset = width * multiplier
-                rects = ax.bar(x + offset, measurement, width, label=attribute)
-                ax.bar_label(rects, padding=3)
-                multiplier += 1
             for ax in fig.axes:
+                ax.bar(x - w/2, positive, width=w, label="Positive", color="Green")
+                ax.bar(x + w/2, np.abs(negative), width=w, label="Negative", color="red")
+
+                ax.set_xticks(x)
+                ax.set_xticklabels(months.strftime("%Y-%m"), rotation=45)
+
+            return fig
 
 
     class InitalizationAndAesthetics:
@@ -43,13 +43,14 @@ class graphing:
             
             limits=[[1e5,1e6],[10000,1e5],[1000,10000],[0,1000] ]
             rows=[]
-            st.dataframe(dataframe)
             for i, (low, high) in enumerate(limits):
                 # safer condition: values actually inside the range
                 if np.any((dataframe["balance"] > low) &
                         (dataframe["balance"] < high)):
                     rows.append((low, high, i))
             fig = plt.figure(figsize=(7, 3+2*len(rows)))
+            if len(rows) == 0:
+                return fig
             gs = gridspec.GridSpec(
                 len(rows), 1,
                 hspace=0.1
@@ -72,7 +73,7 @@ class graphing:
 
         def ChangeInit() -> plt.Figure:
             length = len(st.session_state["Accounts"])
-            fig = plt.subplots(figsize=(7, 3+2*length), nrows=length)
+            fig,ax = plt.subplots(figsize=(3+2*length, 7), nrows=length, sharex=True)
             
             return fig
 
@@ -97,6 +98,7 @@ class graphing:
                 Balance= userdataframe[mask]
                 figure = graphing.plotting.Balance(figure, Balance)
                 
+
                 st.pyplot(figure)
             pass
         def Change() -> None:
@@ -113,7 +115,7 @@ class graphing:
                 start=start,
                 end=end,
                 freq="MS"   # Month Start
-            ).strftime("%Y-%m").tolist()
+            )
 
             for i, account in enumerate(st.session_state["Accounts"]):
                 mask=userdataframe["accountID"] == account
@@ -122,19 +124,21 @@ class graphing:
                 monthnegative = []
 
                 for month in months:
-                    start = month.to_timestamp("M") - pd.offsets.MonthEnd(1) + pd.Timedelta(days=1)
-                    end = month.to_timestamp("M")
+                    start = month
+                    end = month + pd.offsets.MonthEnd(1)
 
-                    mask = userdataframe["dates"].between(start, end)
-                    currentdataframe = userdataframe["dates"][mask]
+                    mask = userdataframe["date"].between(start, end)
 
+                    currentdataframe = userdataframe[mask]
+                    
 
                     positiveindicies = np.where(currentdataframe["amount"] > 0 )[0]
                     negativeindicies = np.where(currentdataframe["amount"] < 0 )[0]
                     monthpositive.append(np.sum(currentdataframe["amount"][positiveindicies]))
                     monthnegative.append(np.sum(currentdataframe["amount"][negativeindicies]))
 
-                graphing.plotting.Change(figure, monthpositive, monthnegative, i)
+                graphing.plotting.Change(figure, monthpositive, monthnegative, i, months)
+            st.pyplot(figure)
             pass
             
         def ExpenseProfile() -> None:
