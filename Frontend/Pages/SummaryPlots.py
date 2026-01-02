@@ -158,7 +158,7 @@ class graphing:
             return graphoptions
 
         def init() -> None:
-            graphoptions=["Balance", "Change", "ExpenseProfile", "BalanceProfile"]
+            graphoptions=["Balance", "Change",  "ExpenseProfile", "BalanceProfile"]
             graphing.GUI.SelectionBox(graphoptions)
             graphing.Backend.init(graphoptions)
         
